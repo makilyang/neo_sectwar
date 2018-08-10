@@ -1,0 +1,310 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Egret</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="full-screen" content="true" />
+    <meta name="screen-orientation" content="portrait" />
+    <meta name="x5-fullscreen" content="true" />
+    <meta name="360-fullscreen" content="true" />
+    <style>
+        html, body {
+            -ms-touch-action: none;
+            background: #888888;
+            padding: 0;
+            border: 0;
+            margin: 0;
+            height: 100%;
+        }
+    </style>
+<link rel="stylesheet" href="res/css/panel.css" type="text/css" />
+
+
+<script src="lib/rollup/aes.js"></script>
+<script src="lib/component/aes.js"></script>
+<script src="lib/component/mode-ecb.js"></script>
+<script src="lib/component/pad-nopadding.js"></script>
+<script src="lib/scrypt.js"></script>
+<script src="lib/jsrsasign.js"></script>
+<script src="lib/neo-ts.js"></script>
+<script src="lib/qr-code-with-logo.browser.min.js"></script>
+<script src="lib/code.js"></script>
+</head>
+
+<body>
+    <div style="margin: auto;width: 100%;height: 100%;" class="egret-player" data-entry-class="Main" data-orientation="auto" data-scale-mode="showAll" data-frame-rate="30" data-content-width="640"
+data-content-height="1136" data-multi-fingered="2" data-show-fps="false" data-show-log="false" data-show-fps-style="x:0,y:0,size:12,textColor:0xffffff,bgAlpha:0.9">
+</div>
+<script>
+    var appid = "110";
+    var appkey = "";
+
+    var listener = function (data) {
+        // 页面显示
+        // var resObj = document.getElementById('res')
+        // resObj.innerHTML = '<pre>' + JSON.stringify(JSON.parse(data), null, 4) + '</pre>'
+        console.log(JSON.stringify(JSON.parse(data), null, 4));
+
+        // 回调处理，data是JSON格式String
+        var res = JSON.parse(data)
+        console.log('listener => ', res)
+        switch (res.cmd) {
+            case "loginRes": // 登录回调
+                var loginInfo = res.data;
+                // 此处需要发送接收到的数据到服务端验证后再登录应用
+                if (BlackCat.loginCb) {
+                    BlackCat.loginCb(loginInfo);
+                }
+                break;
+            case "invokescriptRes": // 合约读取调用
+                var params = res.data.params; // 合约调用参数
+                var result = res.data.res; // 合约调用结果
+                if (result.err == true) {
+                    // 执行失败
+                }
+                else {
+                    // 执行成功
+                    var success_data = result.info;
+                }
+                break;
+            case "makeRawTransactionRes": // 合约写入请求结果
+                // 回调数据格式参考invokescriptRes
+                break;
+            case "makeRechargeRes": // 充值回调
+                // 回调数据格式参考invokescriptRes
+                break;
+            case "makeGasTransferRes": // GAS转账回调
+                // 回调数据格式参考invokescriptRes
+                break;
+            case "confirmAppNotifyRes": // 交易通知接收确认回调
+                // 回调数据格式参考invokescriptRes
+                break;
+            case "getBalanceRes": // 获取余额
+                var result = res.data;
+                var sgas = result.sgas;
+                var gas = result.gas;
+                break;
+            case "getUserInfoRes": // 获取登录用户信息
+                var userInfo = res.data;
+                break;
+            case "getNetTypeRes": // 获取网络类型
+                var net_type = res.data;
+                if (net_type == 1) {
+                    // 主网
+                }
+                else if (net_type == 2) {
+                    // 测试网
+                }
+                break;
+            case "changeNetTypeRes": // 网络切换回调
+                var net_type = res.data;
+                if (net_type == 1) {
+                    // 主网
+                }
+                else if (net_type == 2) {
+                    // 测试网
+                }
+                break;
+            case "getAppNotifysRes": // 交易成功回调
+                for (let i = 0; i < res.data.length; i++) {
+                    let txid = res.data[i].txid;
+                    BlackCat.SDK.confirmAppNotify({ txid: txid })
+                }
+                break;
+        }
+    };
+
+    initSDK()
+    setDefaultNetType(2)
+    // login()  
+    window["BlackCat"] = BlackCat;
+    function showDiv(id) {
+        document.getElementById("invokescriptdiv").style.display = "none";
+        document.getElementById("makerawtransactiondiv").style.display = "none";
+        document.getElementById("makerechargediv").style.display = "none";
+        document.getElementById("confirmNotifydiv").style.display = "none";
+        document.getElementById("makeGasTransferdiv").style.display = "none";
+        document.getElementById("makeGasTransferMultidiv").style.display = "none";
+
+        document.getElementById(id).style.display = ""
+    }
+
+    function initSDK() {
+        BlackCat.SDK.init(appid, appkey, listener, "cn")
+    }
+
+    function setLang(lang) {
+        BlackCat.SDK.setLang(lang)
+    }
+
+    function invokescript() {
+        var data = {
+            nnc: document.getElementById('nnc').value,
+            sbParamJson: document.getElementById('sbParamJson').value,
+            sbPushString: document.getElementById('sbPushString').value,
+            extString: document.getElementById('extString').value
+        }
+        data.sbParamJson = JSON.parse(data.sbParamJson)
+        BlackCat.SDK.invokescript(data, function (res) {
+            console.log('[BlackCat]', 'invokescript.callback.function.res => ', res)
+        })
+    }
+
+    function makerawtransaction() {
+        var data = {
+            nnc: document.getElementById('nnc2').value,
+            sbParamJson: document.getElementById('sbParamJson2').value,
+            sbPushString: document.getElementById('sbPushString2').value,
+            extString: document.getElementById('extString2').value
+        }
+        data.sbParamJson = JSON.parse(data.sbParamJson)
+
+        BlackCat.SDK.makeRawTransaction(data, function (res) {
+            console.log('[BlackCat]', 'makerawtransaction.callback.function.res => ', res)
+        })
+    }
+
+    function makerecharge() {
+        var data = {
+            count: document.getElementById('count').value,
+            extString: document.getElementById('extString3').value
+        }
+
+        BlackCat.SDK.makeRecharge(data, function (res) {
+            console.log('[BlackCat]', 'makeRecharge.callback.function.res => ', res)
+        })
+    }
+
+    function confirmappnotify() {
+        var data = {
+            txid: document.getElementById('txid').value
+        }
+
+        BlackCat.SDK.confirmAppNotify(data, function (res) {
+            console.log('[BlackCat]', 'confirmAppNotify.callback.function.res => ', res)
+        })
+    }
+
+    function showMain() {
+        BlackCat.SDK.showMain()
+    }
+
+    function showIcon() {
+        BlackCat.SDK.showIcon()
+    }
+
+    function getbalance() {
+        BlackCat.SDK.getBalance(function (res) {
+            console.log("getbalance.callback.function.res ", res)
+        })
+    }
+
+    function getUserInfo() {
+        BlackCat.SDK.getUserInfo(function (res) {
+            console.log("getUserInfo.callback.function.res ", res)
+        })
+    }
+
+    function makeGasTransfer() {
+        var data = {
+            toaddr: document.getElementById('toaddr').value,
+            count: document.getElementById('gascount').value,
+            extString: document.getElementById('extString4').value
+        }
+        BlackCat.SDK.makeGasTransfer(data, function (res) {
+            console.log("makeGasTransfer.callback.function.res ", res)
+        })
+    }
+
+    function makeGasTransferMulti() {
+        var data = [
+            {
+                toaddr: document.getElementById('toaddrMulti1').value,
+                count: document.getElementById('gascountMulti1').value,
+                extString: document.getElementById('extStringMulti1').value
+            },
+            {
+                toaddr: document.getElementById('toaddrMulti2').value,
+                count: document.getElementById('gascountMulti2').value,
+                extString: document.getElementById('extStringMulti2').value
+            }
+        ]
+        BlackCat.SDK.makeGasTransferMulti(data, function (res) {
+            console.log("makeGasTransfeMultir.callback.function.res ", res)
+        })
+    }
+
+    function getNetType() {
+        BlackCat.SDK.getNetType(function (res) {
+            console.log("getNetType.callback.function.res ", res)
+        })
+    }
+
+    function setDefaultNetType(type) {
+        BlackCat.SDK.setDefaultNetType(type)
+    }
+</script>
+<script>
+    var loadScript = function (list, callback) {
+        var loaded = 0;
+        var loadNext = function () {
+            loadSingleScript(list[loaded], function () {
+                loaded++;
+                if (loaded >= list.length) {
+                    callback();
+                }
+                else {
+                    loadNext();
+                }
+            })
+        };
+        loadNext();
+    };
+
+    var loadSingleScript = function (src, callback) {
+        var s = document.createElement('script');
+        s.async = false;
+        s.src = src;
+        s.addEventListener('load', function () {
+            s.parentNode.removeChild(s);
+            s.removeEventListener('load', arguments.callee, false);
+            callback();
+        }, false);
+        document.body.appendChild(s);
+    };
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', './manifest.json?v=' + Math.random(), true);
+    xhr.addEventListener("load", function () {
+        var manifest = JSON.parse(xhr.response);
+        var list = manifest.initial.concat(manifest.game);
+        loadScript(list, function () {
+            /**
+             * {
+             * "renderMode":, //Engine rendering mode, "canvas" or "webgl"
+             * "audioType": 0 //Use the audio type, 0: default, 2: web audio, 3: audio
+             * "antialias": //Whether the anti-aliasing is enabled in WebGL mode, true: on, false: off, defaults to false
+             * "calculateCanvasScaleFactor": //a function return canvas scale factor
+             * }
+             **/
+            egret.runEgret({
+                renderMode: "webgl", audioType: 0, calculateCanvasScaleFactor: function (context) {
+                    var backingStore = context.backingStorePixelRatio ||
+                        context.webkitBackingStorePixelRatio ||
+                        context.mozBackingStorePixelRatio ||
+                        context.msBackingStorePixelRatio ||
+                        context.oBackingStorePixelRatio ||
+                        context.backingStorePixelRatio || 1;
+                    return (window.devicePixelRatio || 1) / backingStore;
+                }
+            });
+        });
+    });
+    xhr.send(null);
+</script>
+</body>
+
+</html>
